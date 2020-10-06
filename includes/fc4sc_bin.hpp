@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,7 +38,7 @@
 #include <algorithm>
 #include <vector>
 #include <sstream>
-#include <memory>  // unique_ptr
+#include <memory>
 
 #include "fc4sc_base.hpp"
 
@@ -61,6 +62,66 @@ template <typename T>
 static std::vector<interval_t<T>> intersection(const bin<T>& lhs, const std::vector<interval_t<T>>& rhs);
 
 /*!
+ * \brief Defines a class for bin data model
+ * \tparam T Type of values in this bin
+ */
+template <class T>
+class bin_data_model : public bin_base_data_model
+{
+public:
+
+  // the type of bin (default/ignore/illegal)
+  bin_t bin_type;
+
+  /*! Storage for hit counts corresponding to intervals */
+  std::vector<uint64_t> interval_hits;
+
+  /*! Storage for the values. All are converted to intervals */
+  std::vector<interval_t<T>> intervals;
+
+  /*! Name of the bin */
+  std::string name;
+
+  // the type of bin (default/ignore/illegal)
+  //bin_t bin_type;
+  bin_t& get_bin_type()
+  {
+    return bin_type;
+  }
+
+  /*! Storage for hit counts corresponding to intervals */
+  //std::vector<uint64_t> interval_hits;
+  std::vector<uint64_t>& get_interval_hits()
+  {
+    return interval_hits;
+  }
+
+  /*! Name of the bin */
+  //std::string name;
+  std::string& get_name()
+  {
+    return name;
+  }
+
+  /* function to introspect the bin's intervals */
+  std::vector<interval_t<int>> get_intervals_to_int() const
+  {
+    std::vector<interval_t<int>> intervals_int;
+    for(auto inter_it : intervals)
+    {
+      intervals_int.push_back({static_cast<int>(inter_it.first),static_cast<int>(inter_it.second)});
+    }
+    return intervals_int;
+  }
+
+  void accept_visitor(covVisitorBase& visitor)
+  {
+    visitor.visit(*this);
+  }
+
+};
+
+/*!
  * \brief Defines a class for default bins
  * \tparam T Type of values in this bin
  */
@@ -68,7 +129,8 @@ template <class T>
 class bin : public bin_base
 {
 private:
-  static_assert(std::is_arithmetic<T>::value, "Type must be numeric!");
+  //all bin types required to be integral since floating point bins result in ambiguous intervals for bins
+  static_assert(std::is_integral<T>::value, "Type must be integral!");
   friend binsof<T>;
   friend coverpoint<T>;
 
@@ -83,7 +145,25 @@ private:
    */
   template <typename... Args>
   bin(T value, Args... args) noexcept : bin(args...) {
-    intervals.push_back(interval(value, value));
+    bin_data->intervals.push_back(interval(value, value));
+    bin_data->interval_hits.push_back(0);
+  }
+
+  /*!
+   *  \brief Adds a new intervals to the bin
+   *  \param intervals New vector of intervals associated with the bin
+   *  \param args Rest of arguments
+   */
+  template <typename... Args>
+  bin(std::vector<interval_t<T>> intervals_vec, Args... args) noexcept : bin(args...) {
+    for(auto interval : intervals_vec)
+    {
+      bin_data->intervals.push_back(interval);
+      bin_data->interval_hits.push_back(0);
+      if (bin_data->intervals.back().first > bin_data->intervals.back().second) {
+        std::swap(bin_data->intervals.back().first, bin_data->intervals.back().second);
+      }
+    }
   }
 
   /*!
@@ -93,32 +173,128 @@ private:
    */
   template <typename... Args>
   bin(interval_t<T> interval, Args... args) noexcept : bin(args...) {
-    intervals.push_back(interval);
-    if (intervals.back().first > intervals.back().second) {
-      std::swap(intervals.back().first, intervals.back().second);
+    bin_data->intervals.push_back(interval);
+    bin_data->interval_hits.push_back(0);
+    if (bin_data->intervals.back().first > bin_data->intervals.back().second) {
+      std::swap(bin_data->intervals.back().first, bin_data->intervals.back().second);
     }
   }
 
 protected:
   /*! Default Constructor */
-  bin() = default;
+  bin() { }
 
-  // the type of UCIS bin (default/ignore/illegal)
-  std::string ucis_bin_type;
+  /*! Pointer to this object's data */
+  bin_data_model<T>* bin_data = new bin_data_model<T>;
 
-  uint64_t hits = 0;
+  /*! For ensuring the object's data has not been deallocated */
+  std::weak_ptr<bool> valid_data = bin_data->valid;
+
+  // the type of bin (default/ignore/illegal)
+  //bin_t bin_type;
+  bin_t& bin_type()
+  {
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    return bin_data->bin_type;
+  }
+
+  /*! Storage for hit counts corresponding to intervals */
+  //std::vector<uint64_t> interval_hits;
+  std::vector<uint64_t>& interval_hits()
+  {
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    return bin_data->interval_hits;
+  }
 
   /*! Storage for the values. All are converted to intervals */
-  std::vector<interval_t<T>> intervals;
+  //std::vector<interval_t<T>> intervals;
+  std::vector<interval_t<T>>& intervals()
+  {
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    return bin_data->intervals;
+  }
 
   /*! Name of the bin */
-  std::string name;
+  //std::string name;
+  std::string& name()
+  {
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    return bin_data->name;
+  }
+
+  /*!
+   *  \brief Comparator class for sorting vector of intervals
+   */
+  struct IntervalComp {
+    bool operator() (fc4sc::interval_t<T> a, fc4sc::interval_t<T> b) {
+      return a.first < b.first;
+    }
+  };
+
+  /*!
+   *  \brief Checks and merges overlapping intervals
+   */
+  void remove_interval_overlap()
+  {
+    sort(bin_data->intervals.begin(),bin_data->intervals.end(),IntervalComp());
+    auto intrv_end = bin_data->intervals.begin();
+    for (auto intrv = std::next(intrv_end); intrv != bin_data->intervals.end(); intrv++)
+    {
+      if(intrv_end->second >= intrv->first) {
+        intrv_end->second = intrv->second;
+	std::cerr << "Warning: Merging overlapping intervals "
+	          << "("  << intrv_end->first << "," << intrv_end->second << ")"
+		  << " and "
+		  << "(" << intrv->first << "," << intrv->second << ")"
+	          << " within bin \"" << this->bin_data->name << "\"\n";
+      }
+      else {
+        *(++intrv_end) = *intrv;
+      }
+    }
+    bin_data->intervals.erase(++intrv_end,bin_data->intervals.end());
+  }
 
 public:
-  /* Virtual function used to register this bin inside a coverpoint */
-  virtual void add_to_cvp(coverpoint<T> &cvp) const
+
+  /* function to introspect the bin's intervals */
+  std::vector<interval_t<int>> get_intervals_to_int() const
   {
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    std::vector<interval_t<int>> intervals_int;
+    for(auto inter_it : bin_data->intervals)
+    {
+      intervals_int.push_back({static_cast<int>(inter_it.first),static_cast<int>(inter_it.second)});
+    }
+    return intervals_int;
+  }
+
+  /* Virtual function used to register this bin inside a coverpoint */
+  virtual void add_to_cvp(coverpoint<T> &cvp)
+  {
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    remove_interval_overlap();
+    cvp.insert_intervals(cvp.regular_interval_map,*this,cvp.bins.size());
     cvp.bins.push_back(*this);
+    cvp.cvp_data->bins_data.push_back(this->bin_data);
   }
 
   /*!
@@ -129,8 +305,8 @@ public:
   template<typename ...Args>
   explicit bin(const std::string &bin_name, Args... args) noexcept : bin(args...) {
     static_assert(forbid_type<std::string, Args...>::value, "Bin constructor accepts only 1 name argument!");
-    this->name = bin_name;
-    this->ucis_bin_type = "default";
+    this->bin_data->name = bin_name;
+    this->bin_data->bin_type = bin_t::default_;
   }
 
   /*!
@@ -146,24 +322,34 @@ public:
 
   uint64_t get_hitcount() const
   {
-    return hits;
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    uint64_t hitsum = 0;
+    for (auto hitcount : bin_data->interval_hits)
+      hitsum += hitcount;
+    return hitsum;
   }
 
   /*!
-   * \brief Samples the given value and increments hit counts
+   * \brief Samples the given value and interval index and increments hit counts
    * \param val Current sampled value
+   * \param interval index
    */
-  uint64_t sample(const T &val)
+  uint64_t sample(const T &val, unsigned int interval_index)
   {
-    // Just search for the value in the intervals we have
-    for (auto i : intervals)
-      if (val >= i.first && val <= i.second)
-      {
-        this->hits++;
-        return 1;
-      }
-
-    return 0;
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    if(val >= this->bin_data->intervals[interval_index].first && val <= this->bin_data->intervals[interval_index].second) {
+      this->bin_data->interval_hits[interval_index]++;
+      return 1;
+    }
+    else {
+      return 0;
+    }
   }
 
   /*!
@@ -173,8 +359,12 @@ public:
    */
   bool contains(const T &val) const
   {
-    for (size_t i = 0; i < intervals.size(); ++i)
-      if (intervals[i].first <= val && intervals[i].second >= val)
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    for (size_t i = 0; i < bin_data->intervals.size(); ++i)
+      if (bin_data->intervals[i].first <= val && bin_data->intervals[i].second >= val)
         return true;
 
     return false;
@@ -182,43 +372,11 @@ public:
 
   bool is_empty() const
   {
-    return intervals.empty();
-  }
-
-  /*!
-   * \brief Writes the bin in UCIS XML format
-   * \param stream Where to print it
-   */
-  virtual void to_xml(std::ostream &stream) const
-  {
-    stream << "<ucis:coverpointBin name=\"" << name << "\" \n";
-    stream << "type=\""
-           << this->ucis_bin_type
-           << "\" "
-           << "alias=\"" << this->get_hitcount() << "\""
-           << ">\n";
-
-    // Print each range. Coverpoint writes the header (name etc.)
-    for (size_t i = 0; i < this->intervals.size(); ++i)
-    {
-      stream << "<ucis:range \n"
-	  // Adding "+" before the "this->intervals[i].first" and "this->intervals[i].second"
-	  // operands which promotes them to numeric types. This means that char-based types
-	  // will be output (in the UCIS DB) in numeric form.
-	  // Char based types are problematic when used with value 0 because they are treated
-	  // as NULL terminator and results in malformed XML!
-             << "from=\"" << +this->intervals[i].first << "\" \n"
-             << "to =\"" << +this->intervals[i].second << "\"\n"
-             << ">\n";
-
-      // Print hits for each range
-      stream << "<ucis:contents "
-             << "coverageCount=\"" << this->hits << "\">";
-      stream << "</ucis:contents>\n";
-      stream << "</ucis:range>\n\n";
+    if(valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
     }
-
-    stream << "</ucis:coverpointBin>\n";
+    return bin_data->intervals.empty();
   }
 
   friend std::vector<interval_t<T>> reunion<T>(const bin<T>& lhs, const std::vector<interval_t<T>>& rhs);
@@ -234,129 +392,102 @@ public:
 template <class T>
 class illegal_bin final : public bin<T>
 {
-  static_assert(std::is_arithmetic<T>::value, "Type must be numeric!");
+  static_assert(std::is_integral<T>::value, "Type must be integral!");
+  friend class coverpoint<T>;
 protected:
-  /* Virtual function used to register this bin inside a coverpoint */
-  virtual void add_to_cvp(coverpoint<T> &cvp) const override
-  {
-    cvp.illegal_bins.push_back(*this);
-  }
-
+  
   illegal_bin() = delete;
+
 public:
   /*!
    *  \brief Forward to parent constructor
    */
   template <typename... Args>
   explicit illegal_bin(Args... args) : bin<T>::bin(args...) {
-    this->ucis_bin_type = "illegal";
+    this->bin_data->bin_type = bin_t::illegal_;
   }
 
   virtual ~illegal_bin() = default;
 
   /*!
-   * \brief Same as bin::sample(const T& val)
-   *
-   * Samples the inner bin instance, but throws an error if the value is found
+   * \brief Samples the given value and interval index and increments hit counts
+   * \param val Current sampled value
+   * \param interval index
    */
-  uint64_t sample(const T &val)
+  uint64_t sample(const T &val, unsigned int interval_index)
   {
-    for (size_t i = 0; i < this->intervals.size(); ++i)
-      if (val >= this->intervals[i].first && val <= this->intervals[i].second) {
-        // construct exception to be thrown
-        std::stringstream ss; ss << val;
-        illegal_bin_sample_exception e;
-        e.update_bin_info(this->name, ss.str());
-        this->hits++;
-        throw e;
-      }
-
-    return 0;
+    if(this->valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    if(val >= this->bin_data->intervals[interval_index].first && val <= this->bin_data->intervals[interval_index].second) {
+      // construct exception to be thrown
+      std::stringstream ss; ss << val;
+      illegal_bin_sample_exception e;
+      e.update_bin_info(this->bin_data->name, ss.str());
+      this->bin_data->interval_hits[interval_index]++;
+      throw e;
+    }
+    else {
+      return 0;
+    }
   }
+
+  /* Virtual function used to register this bin inside a coverpoint */
+  virtual void add_to_cvp(coverpoint<T> &cvp) override
+  {
+    if(this->valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    bin<T>::remove_interval_overlap();
+    cvp.insert_intervals(cvp.illegal_interval_map,*this,cvp.illegal_bins.size());
+    cvp.illegal_bins.push_back(*this);
+    cvp.cvp_data->illegal_bins_data.push_back(this->bin_data);
+  }
+
 };
 
 template <class T>
 class ignore_bin final : public bin<T>
 {
-  static_assert(std::is_arithmetic<T>::value, "Type must be numeric!");
+  static_assert(std::is_integral<T>::value, "Type must be integral!");
 protected:
-  /* Virtual function used to register this bin inside a coverpoint */
-  virtual void add_to_cvp(coverpoint<T> &cvp) const override
-  {
-    cvp.ignore_bins.push_back(*this);
-  }
 
   ignore_bin() = delete;
+
 public:
   /*!
    *  \brief Forward to parent constructor
    */
   template <typename... Args>
   explicit ignore_bin(Args... args) : bin<T>::bin(args...) {
-    this->ucis_bin_type = "ignore";
+    this->bin_data->bin_type = bin_t::ignore_;
   }
 
   virtual ~ignore_bin() = default;
+
+  /* Virtual function used to register this bin inside a coverpoint */
+  virtual void add_to_cvp(coverpoint<T> &cvp) override
+  {
+    if(this->valid_data.use_count() == 0) {
+      std::cerr << "Error: coverage data has been deleted\n";
+      throw("Error: coverage data has been deleted");
+    }
+    bin<T>::remove_interval_overlap();
+    cvp.insert_intervals(cvp.ignore_interval_map,*this,cvp.ignore_bins.size());
+    cvp.ignore_bins.push_back(*this);
+    cvp.cvp_data->ignore_bins_data.push_back(this->bin_data);
+  }
+
 };
 
 
 template <class T>
 class bin_array final : public bin<T>
 {
-  static_assert(std::is_arithmetic<T>::value, "Type must be numeric!");
+  static_assert(std::is_integral<T>::value, "Type must be integral!");
 protected:
-  /* Virtual function used to register this bin inside a coverpoint */
-  virtual void add_to_cvp(coverpoint<T> &cvp) const override
-  {
-    if (this->sparse) {
-      // bin array was defined by using a vector of intervals or values
-      // create a new bin for each value/interval and add it to the coverpoint
-      std::stringstream ss;
-
-      for (size_t i = 0; i < this->intervals.size(); ++i) {
-        ss << this->name << "[" << i << "]";
-        cvp.bins.push_back(bin<T>(ss.str(), this->intervals[i]));
-        ss.str(std::string()); // clear the stringstream
-      }
-    }
-    else {
-      // bin array was defined by using an interval which needs to be split into
-      // multiple pieces. The interval is found in the this->intervals[0]
-
-      // FIXME: interval_length is not properly calculated for floating point types
-      T interval_length = (this->intervals[0].second - this->intervals[0].first) + 1;
-
-      // The if following condition can trigger comparison warnings.
-      // Casting interval_length is not a viable option because if T is float
-      // or double, we will cast away the floating point and lose information!
-      // Nor is casting the count variable to T either, because we might undercast
-      // TODO: find a way to work around this issue
-      // NOTE: A potential fix would be implementing a template specialization
-      // of the bin_array class for floating point types (float/double).
-      if (this->count > interval_length) {
-        // This bin array interval cannot be split into pieces. Add a single
-        // bin containing the whole interval to the coverpoint. We can simply
-        // use this object since it already matches the bin that we need!
-        cvp.bins.push_back(*this);
-      }
-      else {
-        std::stringstream ss;
-        // This bin array interval must be split into pieces.
-        T start = this->intervals[0].first;
-        T stop = this->intervals[0].second;
-        T interval_len = (interval_length + 1) / this->count;
-
-        for (size_t i = 0; i < this->count; ++i) {
-          ss << this->name << "[" << i << "]";
-          // the last interval, will contain all the extra elements
-          T end = (i == (this->count - 1)) ? stop : start + (interval_len - 1);
-          cvp.bins.push_back(bin<T>(ss.str(), interval(start, end)));
-          start = start + interval_len;
-          ss.str(std::string()); // clear the stringstream
-        }
-      }
-    }
-  }
 
   uint64_t count;
   bool sparse = false;
@@ -378,8 +509,19 @@ public:
   explicit bin_array(const std::string &name, std::vector<interval_t<T>>&& intvs) noexcept :
     count(intvs.size()), sparse(true)
   {
-    this->name = name;
-    this->intervals = std::move(intvs);
+    this->bin_data->name = name;
+    this->bin_data->intervals = std::move(intvs);
+  }
+
+  /*!
+   * \brief Constructs an bin_array from a vector of intervals ref where each
+   * interval will be nested by a bin
+   */
+  explicit bin_array(const std::string &name, std::vector<interval_t<T>>& intvs) noexcept :
+    count(intvs.size()), sparse(true)
+  {
+    this->bin_data->name = name;
+    this->bin_data->intervals = intvs;
   }
 
   /*!
@@ -389,16 +531,67 @@ public:
   explicit bin_array(const std::string &name, const std::vector<T>& intvs) noexcept :
     count(intvs.size()), sparse(true)
   {
-    this->name = name;
-    this->intervals.clear();
-    this->intervals.reserve(this->count);
+    this->bin_data->name = name;
+    this->bin_data->intervals.clear();
+    this->bin_data->intervals.reserve(this->count);
     // transform each value in the input vector to an interval
     std::transform(intvs.begin(), intvs.end(),
-                   std::back_inserter(this->intervals),
+                   std::back_inserter(this->bin_data->intervals),
                    [](const T& v) { return fc4sc::interval(v,v); });
   }
 
   virtual ~bin_array() = default;
+
+  /* Virtual function used to register this bin inside a coverpoint */
+  virtual void add_to_cvp(coverpoint<T> &cvp) override
+  {
+    if (this->sparse) {
+      // bin array was defined by using a vector of intervals or values
+      // create a new bin for each value/interval and add it to the coverpoint
+      std::stringstream ss;
+
+      for (size_t i = 0; i < this->bin_data->intervals.size(); ++i) {
+        ss << this->bin_data->name << "[" << i << "]";
+        //cvp.bins.push_back(bin<T>(ss.str(), this->bin_data->intervals[i]));
+	bin<T>(ss.str(), this->bin_data->intervals[i]).add_to_cvp(cvp);
+        ss.str(std::string()); // clear the stringstream
+      }
+    }
+    else {
+      // bin array was defined by using an interval which needs to be split into
+      // multiple pieces. The interval is found in the this->bin_data->intervals[0]
+
+      uint64_t interval_length = (this->bin_data->intervals[0].second - this->bin_data->intervals[0].first) + 1;
+
+      if (this->count > interval_length) {
+        // This bin array interval cannot be split into pieces. Add a single
+        // bin containing the whole interval to the coverpoint. We can simply
+        // use this object since it already matches the bin that we need!
+        //cvp.bins.push_back(*this);
+	this->bin<T>::add_to_cvp(cvp);
+      }
+      else {
+        std::stringstream ss;
+        // This bin array interval must be split into pieces.
+        T start = this->bin_data->intervals[0].first;
+        T stop = this->bin_data->intervals[0].second;
+        T interval_len = (interval_length + 1) / this->count;
+
+        for (size_t i = 0; i < this->count; ++i) {
+          ss << this->bin_data->name << "[" << i << "]";
+          // the last interval, will contain all the extra elements
+          T end = (i == (this->count - 1)) ? stop : start + (interval_len - 1);
+          //cvp.bins.push_back(bin<T>(ss.str(), interval(start, end)));
+          bin<T>(ss.str(), interval(start, end)).add_to_cvp(cvp);
+          start = start + interval_len;
+          ss.str(std::string()); // clear the stringstream
+        }
+      }
+    }
+  }
+
+
+
 };
 
 /*

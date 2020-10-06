@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,8 +30,8 @@ class basic_cross_options_test : public covergroup {
 public:
 
   CG_CONS(basic_cross_options_test) {
-    cvp1.option.weight = 0;
-    cvp2.option.weight = 0;
+    cvp1.option().weight = 0;
+    cvp2.option().weight = 0;
   };
 
   int SAMPLE_POINT(sample_point_1,cvp1);
@@ -63,8 +64,9 @@ public:
 
 TEST(cross_option, goal) {
 
-  basic_cross_options_test basic_cg_1;
-  
+  auto cntxt = fc4sc::global::create_new_context();
+
+  basic_cross_options_test basic_cg_1("basic_cg_1",__FILE__,__LINE__,cntxt); 
 
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 0);
 
@@ -83,11 +85,11 @@ TEST(cross_option, goal) {
   basic_cg_1.sample(1,2);  
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 25);
 
-  basic_cg_1.cross1.option.goal = 25;
+  basic_cg_1.cross1.option().goal = 25;
   EXPECT_EQ(basic_cg_1.cross1.get_inst_coverage(), 100);
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 100);
 
-  basic_cg_1.cross1.option.goal = 100;
+  basic_cg_1.cross1.option().goal = 100;
 
   basic_cg_1.sample(2,2);  
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 50);
@@ -98,15 +100,19 @@ TEST(cross_option, goal) {
   basic_cg_1.sample(1,1);  
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 100);
 
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "0.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 }
 
 
 TEST(cross_option, weight) {
 
-  basic_cross_options_test basic_cg_1;
-  basic_cg_1.cvp1.option.weight = 1;
-  basic_cg_1.cvp2.option.weight = 1;
-  basic_cg_1.cross1.option.weight = 2;
+  auto cntxt = fc4sc::global::create_new_context();
+
+  basic_cross_options_test basic_cg_1("basic_cg_1",__FILE__,__LINE__,cntxt);
+  basic_cg_1.cvp1.option().weight = 1;
+  basic_cg_1.cvp2.option().weight = 1;
+  basic_cg_1.cross1.option().weight = 2;
 
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 0);
 
@@ -122,14 +128,17 @@ TEST(cross_option, weight) {
   basic_cg_1.sample(1,1);  
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 100);
 
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "1.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 }
 
 
 TEST(cross_option, at_least) {
 
-  basic_cross_options_test basic_cg_1;
-  basic_cg_1.cross1.option.at_least = 2;
+  auto cntxt = fc4sc::global::create_new_context();
 
+  basic_cross_options_test basic_cg_1("basic_cg_1",__FILE__,__LINE__,cntxt);
+  basic_cg_1.cross1.option().at_least = 2;
 
   basic_cg_1.sample(1,2);  
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 0);
@@ -137,5 +146,8 @@ TEST(cross_option, at_least) {
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 25);
   basic_cg_1.sample(1,2);  
   EXPECT_EQ(basic_cg_1.get_inst_coverage(), 25);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "2.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 
 }

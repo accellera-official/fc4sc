@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,24 +31,26 @@ public:
   CG_CONS(basic_coverpoint_definitions_cvg) {};
   bool         var_bool         = 65;
   char         var_char         = 65;
-  float        var_float        = 65;
-  double       var_double       = 65;
   int          var_int          = 65;
   unsigned int var_unsigned_int = 65;
   long         var_long         = 65;
 
   COVERPOINT(bool        , cvp_bool        , var_bool        ) { bin<bool        >("65", 65) };
   COVERPOINT(char        , cvp_char        , var_char        ) { bin<char        >("65", 65) };
-  COVERPOINT(float       , cvp_float       , var_float       ) { bin<float       >("65", 65) };
-  COVERPOINT(double      , cvp_double      , var_double      ) { bin<double      >("65", 65) };
   COVERPOINT(int         , cvp_int         , var_int         ) { bin<int         >("65", 65) };
   COVERPOINT(unsigned int, cvp_unsigned_int, var_unsigned_int) { bin<unsigned int>("65", 65) };
   COVERPOINT(long        , cvp_long        , var_long        ) { bin<long        >("65", 65) };
 };
 
 TEST(coverpoint, control) {
-  basic_coverpoint_definitions_cvg cvg("cvg");
+  auto cntxt = fc4sc::global::create_new_context();
+
+  basic_coverpoint_definitions_cvg cvg("cvg",__FILE__,__LINE__,cntxt);
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
   cvg.sample();
   EXPECT_EQ(cvg.get_inst_coverage(), 100);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "0.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
 }

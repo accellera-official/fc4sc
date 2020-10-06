@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,8 +30,8 @@ class basic_cvp_at_least_test : public covergroup {
 public:
 
   CG_CONS(basic_cvp_at_least_test) {
-    cvp1.option.at_least = 1;
-    cvp2.option.at_least = 2;
+    cvp1.option().at_least = 1;
+    cvp2.option().at_least = 2;
   }
 
   // Must define sample
@@ -57,7 +58,9 @@ public:
 
 TEST(cvp_options, at_least) {
 
-  basic_cvp_at_least_test basic_cg;
+  auto cntxt = fc4sc::global::create_new_context();
+
+  basic_cvp_at_least_test basic_cg("basic_cg",__FILE__,__LINE__,cntxt);
   int i = 1;
 
   EXPECT_TRUE(basic_cg.get_coverage() == 0);
@@ -69,6 +72,10 @@ TEST(cvp_options, at_least) {
   basic_cg.sample(i);
 
   EXPECT_TRUE(basic_cg.get_coverage() == 100);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "0.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
 
 }
 

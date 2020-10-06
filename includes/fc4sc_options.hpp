@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -85,23 +86,6 @@ struct cvg_option
     this->get_inst_coverage = 0;
   }
 
-  /*!
-   * \brief Prints option in UCIS XML format
-   */
-  friend inline std::ostream &operator<<(std::ostream &stream, const cvg_option &inst)
-  {
-    stream << "<ucis:options ";
-    stream << "weight=\"" << inst.weight << "\" ";
-    stream << "goal=\"" << inst.goal << "\" ";
-    stream << "comment=\"" << inst.comment << "\" ";
-    stream << "at_least=\"" << inst.at_least << "\" ";
-    stream << "auto_bin_max=\"" << inst.auto_bin_max << "\" ";
-    stream << "detect_overlap=\"" << inst.detect_overlap << "\" ";
-    stream << "cross_num_print_missing=\"" << inst.cross_num_print_missing << "\" ";
-    stream << "per_instance=\"" << inst.per_instance << "\" ";
-    stream << "/>";
-    return stream;
-  }
 };
 
 /*!
@@ -140,22 +124,6 @@ struct cvp_option
     this->detect_overlap = 0;
   }
 
-  /*!
-   * \brief Prints option in UCIS XML format
-   */
-  friend std::ostream &operator<<(std::ostream &stream, const cvp_option &inst)
-  {
-    stream << "<ucis:options ";
-    stream << "weight=\"" << inst.weight << "\" ";
-    stream << "goal=\"" << inst.goal << "\" ";
-    stream << "comment=\"" << inst.comment << "\" ";
-    stream << "at_least=\"" << inst.at_least << "\" ";
-    stream << "auto_bin_max=\"" << inst.auto_bin_max << "\" ";
-    stream << "detect_overlap=\"" << inst.detect_overlap << "\" ";
-    stream << "/>";
-
-    return stream;
-  }
 };
 
 /*!
@@ -190,21 +158,6 @@ struct cross_option // cross option declaration
     cross_num_print_missing = 0;
   }
 
-  /*!
-   * \brief Prints option in UCIS XML format
-   */
-  friend std::ostream &operator<<(std::ostream &stream, const cross_option &inst)
-  {
-    stream << "<ucis:options ";
-    stream << "weight=\"" << inst.weight << "\" ";
-    stream << "goal=\"" << inst.goal << "\" ";
-    stream << "comment=\"" << inst.comment << "\" ";
-    stream << "at_least=\"" << inst.at_least << "\" ";
-    stream << "cross_num_print_missing=\"" << inst.cross_num_print_missing << "\" ";
-    stream << "/>";
-
-    return stream;
-  }
 };
 
 /*!
@@ -233,31 +186,6 @@ struct cvg_type_option // covergroup type_option declaration
     this->weight = 1;
     this->goal = 100;
     this->merge_instances = 0;
-  }
-};
-
-/*!
- * \class cvp_type_option fc_options.hpp
- * \brief Covergroup option declaration
- */
-struct cvp_type_option // coverpoint and cross type_option declaration
-{
-  /*! Weight of instance when computing coverage */
-  uint weight;
-
-  /*! Target coverage percentage */
-  uint goal;
-
-  /*! Comment for this coverage */
-  std::string comment;
-
-  /*!
-   * \brief Sets all values to default
-   */
-  cvp_type_option()
-  {
-    this->weight = 1;
-    this->goal = 100;
   }
 };
 

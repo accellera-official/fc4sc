@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,8 +49,8 @@ public:
 
 
 TEST(illegal_bin, sample_throws) {
-
-  cvg_illegal_test cvg;
+  auto cntxt = fc4sc::global::create_new_context();
+  cvg_illegal_test cvg("cvg",__FILE__,__LINE__,cntxt);
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
 
   cvg.sample(1);
@@ -58,5 +59,5 @@ TEST(illegal_bin, sample_throws) {
   ASSERT_ANY_THROW(cvg.sample(2));	
   
   EXPECT_EQ(cvg.get_inst_coverage(), 100);
-  
+  fc4sc::global::delete_context(cntxt);  
 }
