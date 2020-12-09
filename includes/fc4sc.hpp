@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,6 +47,7 @@ namespace fc4sc {
 };
 
 #include "fc4sc_base.hpp"
+#include "fc4sc_master.hpp"
 #include "fc4sc_intervals.hpp"
 #include "fc4sc_options.hpp"
 #include "fc4sc_binsof.hpp"
@@ -53,6 +55,8 @@ namespace fc4sc {
 #include "fc4sc_coverpoint.hpp"
 #include "fc4sc_cross.hpp"
 #include "fc4sc_covergroup.hpp"
+#include "fc4sc_scope.hpp"
+#include "xml_printer.hpp"
 
 using fc4sc::interval;
 using fc4sc::bin;

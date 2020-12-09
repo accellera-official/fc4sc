@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,7 +47,9 @@ public:
 
 TEST(api, control) {
 
-  cvg_control_test cvg;
+  auto cntxt = fc4sc::global::create_new_context();
+
+  cvg_control_test cvg("cvg",__FILE__,__LINE__,cntxt);
 
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
   
@@ -69,5 +72,68 @@ TEST(api, control) {
   EXPECT_EQ(cvg.cvp1.get_inst_coverage(), 100);
   EXPECT_EQ(cvg.cvp2.get_inst_coverage(), 100);  
   EXPECT_EQ(cvg.get_inst_coverage(), 100);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
+}
+
+class my_first_cvg : public covergroup {
+public:
+  int value = 0;
+  int flags = 0;
+  CG_CONS(my_first_cvg) {}
+
+  COVERPOINT(int, cvp1, value) {
+    bin<int>("filled", 1)
+  };
+
+  COVERPOINT(int, cvp2, flags) {
+    bin<int>("one", 1),
+  };
+
+  cross<int,int> valid_data_cross = cross<int, int> (this,
+    &cvp1, &cvp2
+  );
+
+};
+
+TEST(api, control1) {
+
+  auto cntxt = fc4sc::global::create_new_context();
+
+  my_first_cvg cvg("cvg",__FILE__,__LINE__,cntxt);
+
+  EXPECT_EQ(cvg.get_inst_coverage(), 0);
+  
+  cvg.stop();
+  cvg.value = 1;
+  cvg.flags = 1;
+  cvg.sample();
+
+  EXPECT_EQ(cvg.get_inst_coverage(), 0);
+
+  cvg.start();
+  cvg.cvp1.stop();
+  cvg.value = 1;
+  cvg.flags = 1;
+  cvg.sample();
+
+  EXPECT_EQ(cvg.cvp1.get_inst_coverage(), 0);
+  EXPECT_EQ(cvg.cvp2.get_inst_coverage(), 100);  
+  //EXPECT_EQ(cvg.get_inst_coverage(), 50);
+
+  cvg.cvp1.start();
+  cvg.value = 1;
+  cvg.flags = 1;
+  cvg.sample();
+  
+  EXPECT_EQ(cvg.cvp1.get_inst_coverage(), 100);
+  EXPECT_EQ(cvg.cvp2.get_inst_coverage(), 100);  
+  EXPECT_EQ(cvg.get_inst_coverage(), 100);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "1.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
 
 }

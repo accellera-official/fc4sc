@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -44,7 +45,10 @@ public:
 };
 
 TEST(cvp_sample, sample_condition) {
-  cvp_sample_cond_test cvg;
+
+  auto cntxt = fc4sc::global::create_new_context();
+
+  cvp_sample_cond_test cvg("cvg",__FILE__,__LINE__,cntxt);
 
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
 
@@ -59,4 +63,8 @@ TEST(cvp_sample, sample_condition) {
   EXPECT_EQ(cvg.odd_values_cvp.get_inst_coverage(), 50);
   EXPECT_EQ(cvg.never_sample_cvp.get_inst_coverage(), 0);
   EXPECT_EQ(cvg.get_inst_coverage(), 25);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
 }

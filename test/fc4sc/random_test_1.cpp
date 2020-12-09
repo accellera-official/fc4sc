@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,7 +26,7 @@
 #include "fc4sc.hpp"
 #include "gtest/gtest.h"
 
-class basic_test_1 : covergroup {
+class basic_test_1 : public covergroup {
 public:
   CG_CONS(basic_test_1) {};
 
@@ -71,10 +72,10 @@ public:
 };
 
 TEST(random, 1) {
+  auto cntxt = fc4sc::global::create_new_context();
+  basic_test_1 basic_test_1_cg("basic_test_1_cg",__FILE__,__LINE__,cntxt);
 
-  basic_test_1 basic_test_1_cg;
-
-  double cov = fc4sc::global::get_coverage("basic_test_1");
+  double cov = fc4sc::global::get_coverage(basic_test_1_cg.scp_type_name(),"basic_test_1",cntxt);
 
   for(int i=1; i<1025; ++i) {
    basic_test_1_cg.sample(i);
@@ -84,17 +85,20 @@ TEST(random, 1) {
    if ((i & (i-1)) == 0) {
 
      // Assert coverage increases on each power of 2
-   	EXPECT_GT(fc4sc::global::get_coverage("basic_test_1"), cov);
-      cov = fc4sc::global::get_coverage("basic_test_1");
+   	EXPECT_GT(fc4sc::global::get_coverage(basic_test_1_cg.scp_type_name(),"basic_test_1",cntxt), cov);
+      cov = fc4sc::global::get_coverage(basic_test_1_cg.scp_type_name(),"basic_test_1",cntxt);
 
    }
 
    // If ! power of two, count shouldn't go up
-   EXPECT_EQ(fc4sc::global::get_coverage("basic_test_1"), cov);
+   EXPECT_EQ(fc4sc::global::get_coverage(basic_test_1_cg.scp_type_name(),"basic_test_1",cntxt), cov);
 
 }
 
-EXPECT_EQ(fc4sc::global::get_coverage("basic_test_1"), 100);
-EXPECT_EQ(fc4sc::global::get_coverage(), 100);
+EXPECT_EQ(fc4sc::global::get_coverage(basic_test_1_cg.scp_type_name(),"basic_test_1",cntxt), 100);
+EXPECT_EQ(fc4sc::global::get_coverage(cntxt), 100);
+
+xml_printer::coverage_save("random_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+fc4sc::global::delete_context(cntxt);
 
 }

@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -71,7 +72,8 @@ public:
 };
 
 TEST(flexible_bin_array, base) {
-  flexible_bin_array_cvg cvg;
+  auto cntxt = fc4sc::global::create_new_context();
+  flexible_bin_array_cvg cvg("cvg",__FILE__,__LINE__,cntxt);
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
   // how much each bin weights in the overall coverage of the covergroup
   double bins_hit_weight = (100/15.0); // total 15 bins
@@ -96,4 +98,8 @@ TEST(flexible_bin_array, base) {
     cvg.sample(i);  // hits 2 bins
     EXPECT_DOUBLE_EQ(cvg.get_inst_coverage(), bins_hit_weight * total_bins_hit);
   }
+ 
+  xml_printer::coverage_save("flexible_bin_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
 }

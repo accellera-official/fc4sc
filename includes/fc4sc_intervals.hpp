@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -89,22 +90,22 @@ namespace fc4sc {
 
   template <typename T>
   static std::vector<interval_t<T>> reunion(const bin<T>& lhs, const std::vector<interval_t<T>>& rhs) {
-    return reunion(lhs.intervals, rhs);
+    return reunion(lhs.bin_data->intervals, rhs);
   }
 
   template <typename T>
   static std::vector<interval_t<T>> reunion(const bin<T>& lhs, const bin<T>& rhs) {
-    return reunion(lhs.intervals, rhs.intervals);
+    return reunion(lhs.bin_data->intervals, rhs.bin_data->intervals);
   }
 
   template <typename T>
   static std::vector<interval_t<T>> intersection(const bin<T>& lhs, const std::vector<interval_t<T>>& rhs) {
-    return intersection(lhs.intervals, rhs);
+    return intersection(lhs.bin_data->intervals, rhs);
   }
 
   template <typename T>
   static std::vector<interval_t<T>> intersection(const bin<T>& lhs, const bin<T>& rhs) {
-    return intersection(lhs.intervals, rhs.intervals);
+    return intersection(lhs.bin_data->intervals, rhs.bin_data->intervals);
   }
 
 }

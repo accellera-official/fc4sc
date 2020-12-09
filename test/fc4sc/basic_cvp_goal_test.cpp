@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,8 +32,8 @@ public:
   // Must call UTIL somewhere in constructors to register new cvg
 //  basic_cvp_weight_test() : UTIL(basic_cvp_weight_test) {
   CG_CONS(basic_cvp_goal_test) {
-    cvp1.option.goal = 50;
-    cvp2.option.goal = 100;
+    cvp1.option().goal = 50;
+    cvp2.option().goal = 100;
   };
 
   
@@ -62,7 +63,9 @@ public:
 
 TEST(cvp_options, goal) {
 
-  basic_cvp_goal_test basic_cg;
+  auto cntxt = fc4sc::global::create_new_context();
+
+  basic_cvp_goal_test basic_cg("basic_cg",__FILE__,__LINE__,cntxt);
   int i = 1;
 
   EXPECT_TRUE(basic_cg.get_coverage() == 0);
@@ -77,5 +80,8 @@ TEST(cvp_options, goal) {
   basic_cg.sample(++i);
 
   EXPECT_TRUE(basic_cg.get_coverage() == 100);
+
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + "1.xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 
 }

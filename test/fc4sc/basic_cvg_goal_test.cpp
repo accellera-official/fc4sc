@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,11 +49,13 @@ public:
 
 TEST(cvg_options, goal) {
 
-  basic_cvg_goal_test basic_cg_1;
-  basic_cvg_goal_test basic_cg_2;
+  auto cntxt = fc4sc::global::create_new_context();
 
-  basic_cg_1.option.goal = 50;
-  basic_cg_2.option.goal = 100;
+  basic_cvg_goal_test basic_cg_1("basic_cg_1",__FILE__,__LINE__,cntxt);
+  basic_cvg_goal_test basic_cg_2("basic_cg_2",__FILE__,__LINE__,cntxt);
+
+  basic_cg_1.option().goal = 50;
+  basic_cg_2.option().goal = 100;
 
   EXPECT_TRUE(basic_cg_1.get_coverage() == 0);
   EXPECT_TRUE(basic_cg_2.get_coverage() == 0);
@@ -75,4 +78,6 @@ TEST(cvg_options, goal) {
   EXPECT_EQ(basic_cg_1.get_coverage(), 100);
   EXPECT_EQ(basic_cg_1.get_coverage(), basic_cg_2.get_coverage());
 
+  xml_printer::coverage_save("basic_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 }

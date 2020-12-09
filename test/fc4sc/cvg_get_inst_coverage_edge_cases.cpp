@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,8 +30,8 @@ class cvg_0_weight_test : public covergroup {
 public:
 
   CG_CONS(cvg_0_weight_test) {
-    cvp1.option.weight = 0;
-    cvp2.option.weight = 0;
+    cvp1.option().weight = 0;
+    cvp2.option().weight = 0;
   };
 
   // Must define sample
@@ -58,7 +59,9 @@ public:
 
 TEST(cvg_get_inst_coverage, all_zero_weights) {
 
-  cvg_0_weight_test cvg;
+  auto cntxt = fc4sc::global::create_new_context();
+
+  cvg_0_weight_test cvg("cvg",__FILE__,__LINE__,cntxt);
   
 
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
@@ -67,14 +70,14 @@ TEST(cvg_get_inst_coverage, all_zero_weights) {
   int hit = -1, total = -1;
   EXPECT_EQ(cvg.get_inst_coverage(hit, total), 0);
   EXPECT_EQ(hit, 0);
-  EXPECT_EQ(total, 0);
+  EXPECT_EQ(total, 2);
 
   hit = -1; total = -1;
   EXPECT_EQ(cvg.get_coverage(hit, total), 0);
   EXPECT_EQ(hit, 0);
-  EXPECT_EQ(total, 0);
+  EXPECT_EQ(total, 2);
 
-  cvg.option.weight = 0;
+  cvg.option().weight = 0;
   cvg.type_option().weight = 0;
 
   hit = -1;  total = -1;
@@ -84,14 +87,15 @@ TEST(cvg_get_inst_coverage, all_zero_weights) {
 
   EXPECT_EQ(cvg.get_inst_coverage(hit, total), 100);
   EXPECT_EQ(hit, 0);
-  EXPECT_EQ(total, 0);
+  EXPECT_EQ(total, 2);
 
   hit = -1;  total = -1;
   EXPECT_EQ(cvg.get_coverage(hit, total), 100);
   EXPECT_EQ(hit, 0);
-  EXPECT_EQ(total, 0);
+  EXPECT_EQ(total, 2);
 
-  // fc4sc::global_access::coverage_save("cvg_get_inst_coverage_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml");
+  xml_printer::coverage_save("cvg_get_inst_coverage_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 
 }
 
@@ -106,7 +110,9 @@ public:
 
 TEST(cvg_get_inst_coverage, empty_cvg) {
 
-  cvg_0_empty_cvg_test cvg;
+  auto cntxt = fc4sc::global::create_new_context();
+
+  cvg_0_empty_cvg_test cvg("cvg_empty",__FILE__,__LINE__,cntxt);
 
   EXPECT_EQ(cvg.get_inst_coverage(), 0);
   EXPECT_EQ(cvg.get_coverage(), 0);
@@ -122,7 +128,7 @@ TEST(cvg_get_inst_coverage, empty_cvg) {
   EXPECT_EQ(total, 0);
 
 
-  cvg.option.weight = 0;
+  cvg.option().weight = 0;
   cvg.type_option().weight = 0;
   hit = -1;  total = -1;
 
@@ -137,6 +143,6 @@ TEST(cvg_get_inst_coverage, empty_cvg) {
   EXPECT_EQ(hit, 0);
   EXPECT_EQ(total, 0);
 
-  // fc4sc::global_access::coverage_save("cvg_get_inst_coverage_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml");
+  fc4sc::global::delete_context(cntxt);
 
 }

@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,7 +32,7 @@ private:
 
 public:
   CG_CONS(cvp_0_weight_test) {
-    cvp_weight_0.option.weight = 0;
+    cvp_weight_0.option().weight = 0;
   };
 
   void sample(const int& x) {
@@ -46,7 +47,8 @@ public:
 
 
 TEST(cvp_get_inst_coverage, all_zero_weights) {
-  cvp_0_weight_test cvg;
+  auto cntxt = fc4sc::global::create_new_context();
+  cvp_0_weight_test cvg("cvg",__FILE__,__LINE__,cntxt);
 
   EXPECT_EQ(cvg.cvp_weight_0.get_inst_coverage(), 0);
   
@@ -64,6 +66,7 @@ TEST(cvp_get_inst_coverage, all_zero_weights) {
   EXPECT_EQ(hit, 1);
   EXPECT_EQ(total, 1);
 
-  // fc4sc::global_access::coverage_save("cvp_get_inst_coverage_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml");
+  xml_printer::coverage_save("cvp_get_inst_coverage_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
 }
 

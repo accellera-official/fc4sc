@@ -1,5 +1,6 @@
 #******************************************************************************#
 #   Copyright 2018 AMIQ Consulting s.r.l.
+#   Copyright 2020 NVIDIA Corporation
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -27,6 +28,7 @@ SRC_DIR := .
 OBJ_DIR := ./obj
 GOOGLE_TEST_HOME := ./../googletest/
 INCLUDE_FC4SC := -I./../../includes
+#INCLUDE_FC4SC := -I/home/ip/shared/external/fc4sc/2.1.1_87/includes
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
@@ -42,7 +44,7 @@ EXEC := main.exe
 $(EXEC): $(OBJ_FILES)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | dir
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | dir 
 	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $< -MMD
 
 dir:
@@ -52,6 +54,6 @@ clean:
 	rm -rf $(OBJ_DIR) *.xml  $(EXEC)
 
 run:	
-	export LD_LIBRARY_PATH=$(GOOGLE_TEST_HOME)/build/googlemock/gtest && ./$(EXEC)
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(GOOGLE_TEST_HOME)/build/googlemock/gtest && ./$(EXEC)
 
 -include $(OBJ_DIR)/*.d

@@ -1,6 +1,7 @@
 /******************************************************************************
 
    Copyright 2003-2018 AMIQ Consulting s.r.l.
+   Copyright 2020 NVIDIA Corporation
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -51,7 +52,10 @@ public:
 };
 
 TEST(bin_array, edge_cases) {
-  bin_array_test cvg;
+
+  auto cntxt = fc4sc::global::create_new_context();
+
+  bin_array_test cvg("cvg",__FILE__,__LINE__,cntxt);
   cvg.cvp2.stop();
 
   //cvp1 should have 5 bins -> {1}, {2}, {3}, {4} and {5}
@@ -91,4 +95,8 @@ TEST(bin_array, edge_cases) {
   EXPECT_EQ(cvg.cvp2.get_inst_coverage(hit,total), 100);
   EXPECT_EQ(total, 1);
   EXPECT_EQ(hit, 1);
+
+  xml_printer::coverage_save("bin_array_" + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name()) + ".xml",cntxt);
+  fc4sc::global::delete_context(cntxt);
+
 }
