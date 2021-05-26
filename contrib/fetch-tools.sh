@@ -40,24 +40,27 @@ if [ -d $TOOLS_DIR ]; then
 	exit 0
 fi
 
-mkdir $TEMP_DIR &&
-cd $TEMP_DIR &&
+set -e
+
+# create a temporary work directory to clone the repo in
+mkdir $TEMP_DIR
+cd $TEMP_DIR
 
 # initialize a git repository (needed to fetch the tools directory)
-git init &&
+git init
 # fetch the last commit on the master branch (used to pull the tools directory)
-git fetch $REPO_URL $BRANCH_NAME --depth=1 &&
+git fetch $REPO_URL $BRANCH_NAME --depth=1
 # configure sparse checkout (so that only a specific folder can be pulled)
-git config core.sparseCheckout true &&
+git config core.sparseCheckout true
 
 # configure the folder name to be pulled
-echo "$TOOLS_DIR/" >> .git/info/sparse-checkout &&
+echo "$TOOLS_DIR/" >> .git/info/sparse-checkout
 # pull the latest commit
-git pull --depth=1 $REPO_URL $BRANCH_NAME &&
+git pull --ff-only --depth=1 $REPO_URL $BRANCH_NAME
 # go back to the original directory (where this script was invoked from)
-cd - && 
+cd -
 # move the tools directory to the location where the script was invoked from
-mv $TEMP_DIR/$TOOLS_DIR . &&
+mv $TEMP_DIR/$TOOLS_DIR .
 # cleanup the temporarty working directory
 rm -rf $TEMP_DIR
 
