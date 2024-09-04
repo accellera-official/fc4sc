@@ -70,7 +70,7 @@ void display::entry(){
 	 << " at time " << sc_time_stamp().to_double() << endl;
     
     // generate the coverage database from the collected data
-    fc4sc::global::coverage_save("coverage_results.xml");    
+    xml_printer::coverage_save("coverage_results.xml");
     sc_stop();
   };
 }

@@ -148,6 +148,9 @@ private:
   /*! Expression used to sample the data */
   std::function<T()> sample_expression;
 
+  /*! Sample value resulted from evaluation of the sample_expression() function */
+  T sample_value_resulted;
+
   /*!
    *  \brief Create a dynamic copy of this coverpoint with matching bin types
    */
@@ -550,13 +553,25 @@ public:
 	throw e;
       }
       if (cond) {
+	// 1) try to evaluate the sample_expression
         try {
-          this->sample(sample_expression());
-	} catch(const std::exception& e) {
+	  // sample_expression is a std::function which might throw an exception if it is not bound
+          sample_value_resulted = sample_expression();
+	}
+	catch(const std::exception& e) {
 	  std::cerr << e.what() << "\n";
 	  std::cerr << "sample_expression is not binded for coverpoint " << this->cvp_data->name << "\n";
 	  throw e;
 	}
+	// 2) sample the value and catch any illegal bin value exception
+	try {
+	  // sample call might throw an illegal_bin_sample_exception if an illegal_bin is hit
+          this->sample(sample_value_resulted);
+	}
+        catch(illegal_bin_sample_exception &e) {
+          e.update_cvp_info(this->name());
+	  throw(e);
+        }
       }
       else {
         // This is a fix so that crosses are not sampled if any of the coverpoints
@@ -566,6 +581,10 @@ public:
       }
     }
     else {
+      // NOTE: This is the legacy implementation of the sampling logic
+      // (before the COVERPOINT macro was added).
+      // Eventually, it should be removed entirely, since it's obsolete and we
+      // don't want to have 2 APIs and implementations for the same functioality.
       this->sample(*sample_point);
     }
   }
