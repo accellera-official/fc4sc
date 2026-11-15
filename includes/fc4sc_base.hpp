@@ -63,7 +63,7 @@ template<typename forbidden, typename head, typename...tail> struct forbid_type 
     (!std::is_convertible<head, forbidden>::value);
 };
 template<typename forbidden, typename first> struct forbid_type<forbidden, first> :
-  public std::__not_<std::is_convertible<first, forbidden>> {};
+  public std::integral_constant<bool, !std::is_convertible<first, forbidden>::value> {};
 
 /*!
  * \brief Macro to declare constructor for covergroup registration.

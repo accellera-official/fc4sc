@@ -129,7 +129,7 @@ private:
   typedef std::pair<unsigned int, unsigned int> bin_range_t;
 
   struct IntervalComp {
-    bool operator() (fc4sc::interval_t<T> a, fc4sc::interval_t<T> b) {
+    bool operator() (const fc4sc::interval_t<T>& a, const fc4sc::interval_t<T>& b) const {
       return a.second < b.second;
     }
   };

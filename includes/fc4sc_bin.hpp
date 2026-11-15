@@ -238,7 +238,7 @@ protected:
    *  \brief Comparator class for sorting vector of intervals
    */
   struct IntervalComp {
-    bool operator() (fc4sc::interval_t<T> a, fc4sc::interval_t<T> b) {
+    bool operator() (const fc4sc::interval_t<T>& a, const fc4sc::interval_t<T>& b) const {
       return a.first < b.first;
     }
   };
