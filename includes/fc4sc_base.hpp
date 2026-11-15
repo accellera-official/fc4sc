@@ -63,26 +63,31 @@ template<typename forbidden, typename head, typename...tail> struct forbid_type 
     (!std::is_convertible<head, forbidden>::value);
 };
 template<typename forbidden, typename first> struct forbid_type<forbidden, first> :
-  public std::__not_<std::is_convertible<first, forbidden>> {};
+  public std::integral_constant<bool, !std::is_convertible<first, forbidden>::value> {};
 
 /*!
  * \brief Macro to declare constructor for covergroup registration.
  *
  * This macro expands to a constructor declaration for your custom type, which calls a parent constructor
  * to register the new instance, with some additional info useful for displaying the final report.
+ * The default arguments of the constructor are part of this declaration. Default values
+ * for additional constructor arguments (args) have to be given here as well, and not in
+ * the corresponding CG_CONS_DEF.
  */
 #define CG_CONS_DECL(type, args...) \
   using covergroup::sample; \
-  type(std::string inst_name, const char *auto_inst_file_name, int auto_line, fc4sc::global* cntxt, ##args)
+  type(std::string inst_name = "", const char *auto_inst_file_name = "", int auto_line = 1, fc4sc::global* cntxt = fc4sc::global::getter(), ##args)
 
 /*!
  * \brief Macro to define constructor for covergroup registration.
  *
  * This macro expands to a constructor definition for your custom type, which calls a parent constructor
  * to register the new instance, with some additional info useful for displaying the final report.
+ * The default arguments of the constructor belong to the declaration (CG_CONS_DECL),
+ * so additional constructor arguments (args) must be given without default values here.
  */
 #define CG_CONS_DEF(type, args...) \
-  type::type(std::string inst_name = "", const char *auto_inst_file_name = "", int auto_line = 1, fc4sc::global* cntxt = fc4sc::global::getter(), ##args) : fc4sc::covergroup(#type, __FILE__, __LINE__, inst_name, auto_inst_file_name, auto_line, cntxt)
+  type::type(std::string inst_name, const char *auto_inst_file_name, int auto_line, fc4sc::global* cntxt, ##args) : fc4sc::covergroup(#type, __FILE__, __LINE__, inst_name, auto_inst_file_name, auto_line, cntxt)
 
 /*!
  * \brief Macro to register your covergroup.
@@ -100,10 +105,13 @@ template<typename forbidden, typename first> struct forbid_type<forbidden, first
  * This macro expands to a constructor declaration for your custom type, which calls a parent constructor
  * to register the new instance, with some additional info useful for displaying the final report.
  * Requires that the covergroup must be associated with a scope when instantiated
+ * The default arguments of the constructor are part of this declaration. Default values
+ * for additional constructor arguments (args) have to be given here as well, and not in
+ * the corresponding CG_SCOPED_CONS_DEF.
  */
 #define CG_SCOPED_CONS_DECL(type, scp_type, args...) \
   using covergroup::sample; \
-  type(fc4sc::scp_base& scp, std::string inst_name, const char *auto_inst_file_name, int auto_line, ##args)
+  type(fc4sc::scp_base& scp, std::string inst_name = "", const char *auto_inst_file_name = "", int auto_line = 1, ##args)
 
 /*!
  * \brief Macro to define constructor for covergroup registration within a scope.
@@ -111,9 +119,11 @@ template<typename forbidden, typename first> struct forbid_type<forbidden, first
  * This macro expands to a constructor definition for your custom type, which calls a parent constructor
  * to register the new instance, with some additional info useful for displaying the final report.
  * Requires that the covergroup must be associated with a scope when instantiated
+ * The default arguments of the constructor belong to the declaration (CG_SCOPED_CONS_DECL),
+ * so additional constructor arguments (args) must be given without default values here.
  */
 #define CG_SCOPED_CONS_DEF(type, scp_type, args...) \
-  scp_type::type::type(fc4sc::scp_base& scp, std::string inst_name = "", const char *auto_inst_file_name = "", int auto_line = 1, ##args) : fc4sc::covergroup(scp, #type, scp_type::scp_type_name(), __FILE__, __LINE__, inst_name, auto_inst_file_name, auto_line)
+  scp_type::type::type(fc4sc::scp_base& scp, std::string inst_name, const char *auto_inst_file_name, int auto_line, ##args) : fc4sc::covergroup(scp, #type, scp_type::scp_type_name(), __FILE__, __LINE__, inst_name, auto_inst_file_name, auto_line)
 
 
 /*!
